@@ -1,0 +1,101 @@
+plugins {
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.parchmentmc.librarian.forgegradle' version "1+"
+}
+
+version = mod_version + "-&-" + minecraft_version
+
+base.archivesName = mod_id
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+
+    runs {
+        client {
+            taskName "MainDev"
+            jvmArgs "-Xms512m"
+            jvmArgs "-Xmx2G"
+            jvmArgs "-XX:+UseG1GC"
+            jvmArgs "-Dfile.encoding=UTF-8"
+            workingDirectory = file('run/main_client')
+        }
+
+        client2 {
+            parent minecraft.runs.client
+            taskName "OffDev"
+            jvmArgs "-Xms512m"
+            jvmArgs "-Xmx2G"
+            jvmArgs "-XX:+UseG1GC"
+            jvmArgs "-Dfile.encoding=UTF-8"
+            workingDirectory = file('run/off_client')
+        }
+
+        server {
+            taskName "server"
+            jvmArgs("-Xmx2G")
+            workingDirectory = file('run/server')
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${dev_forge_version}"
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            // CONFIGS GENERAL
+            loader_version_range: loader_version_range,
+            minimum_forge_version : minimum_forge_version,
+            minecraft_version   : minecraft_version,
+            // CONFIGS MOD
+            mod_version         : mod_version,
+            mod_id              : mod_id,
+            mod_name            : mod_name,
+            mod_license         : mod_license,
+            mod_authors         : mod_authors,
+            mod_description     : mod_description,
+            logo_file           : logo_file,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(JavaExec).configureEach {
+    if (name == 'MainDev' || name == 'OffDev') {
+        doFirst {
+            def cleanedArgs = []
+            def currentArgs = getArgs()
+            def username = name
+
+            for (int i = 0; i < currentArgs.size(); i++) {
+                def arg = currentArgs[i]
+
+                if (arg == '--username') {
+                    i++
+                    continue
+                }
+
+                if (arg.startsWith('--username=')) {
+                    continue
+                }
+
+                cleanedArgs.add(arg)
+            }
+
+            setArgs(cleanedArgs + ["--username=${username}"])
+        }
+    }
+}
+
+apply from: 'libs.gradle'

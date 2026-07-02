@@ -1,0 +1,54 @@
+# Build directories and binaries
+/build/
+/bin/
+
+# Local configuration folders for Eclipse, VSCode, and Gradle
+/.eclipse/
+/.gradle/
+/.vscode/
+
+# Logs and reports
+*.log
+*.out
+*.tmp
+*.pid
+/run/logs/
+run/crash-reports/
+
+# Temporary Gradle files
+.gradle/
+**/.gradle/
+!gradle/wrapper/gradle-wrapper.properties # Exception for Gradle wrapper
+
+# Temporary configuration for Gradle and IDE
+/buildOutputCleanup/
+/tmp/
+/neoformruntime/
+
+# Game files generated during runtime
+run/
+
+# Operating system specific files
+.DS_Store
+Thumbs.db
+
+# Backup or temporary files
+*.bak
+*.swp
+*.swo
+*.old
+
+# Generated Java files
+/build/classes/
+/build/generated/
+
+.MagicCoins-Obsidian
+
+# Local plugin API jars for optional Towny integration
+/libs/towny/*.jar
+
+# Local server reference files copied from Pterodactyl
+/server-reference/
+
+# Local server runtimes and jars for Arclight dev testing
+/local-runtime/
