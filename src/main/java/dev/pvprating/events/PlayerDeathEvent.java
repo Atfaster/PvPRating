@@ -3,6 +3,7 @@ package dev.pvprating.events;
 import static dev.pvprating.configs.Config.*;
 import dev.pvprating.PvPRatingMod;
 import dev.pvprating.compats.TownyCompat;
+import dev.pvprating.utils.RatingAnomalyDetector;
 import dev.pvprating.utils.RatingAuditLogger;
 import dev.pvprating.utils.RatingData;
 
@@ -68,6 +69,16 @@ public class PlayerDeathEvent {
                         targetCurrentRating,
                         Double.compare(targetPreviousRating, targetCurrentRating) != 0,
                         targetFrozen
+                );
+                RatingAnomalyDetector.analyzeKill(
+                        killer,
+                        target,
+                        killerPreviousRating,
+                        killerCurrentRating,
+                        Double.compare(killerPreviousRating, killerCurrentRating) != 0,
+                        targetPreviousRating,
+                        targetCurrentRating,
+                        Double.compare(targetPreviousRating, targetCurrentRating) != 0
                 );
 
                 DisplayEvents.syncAllDisplays(killer.getServer());

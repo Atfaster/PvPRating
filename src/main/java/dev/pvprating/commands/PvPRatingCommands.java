@@ -8,6 +8,7 @@ import dev.pvprating.PvPRatingMod;
 import dev.pvprating.configs.Config;
 import dev.pvprating.events.DisplayEvents;
 import dev.pvprating.utils.OfflineRatingData;
+import dev.pvprating.utils.RatingAnomalyDetector;
 import dev.pvprating.utils.RatingAuditLogger;
 import dev.pvprating.utils.RatingData;
 import dev.pvprating.utils.RatingLeaderboardData;
@@ -566,6 +567,166 @@ public class PvPRatingCommands {
                                                 "label.pvprating.config.formula.prevent_negative",
                                                 null
                                         )))))
+                .then(Commands.literal("anomaly")
+                        .requires(PvPRatingCommands::isAdmin)
+                        .executes(context -> sendAnomalyStatus(context.getSource()))
+                        .then(Commands.literal("enabled")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyDetectionEnabled,
+                                        "label.pvprating.config.anomaly.enabled"
+                                ))
+                                .then(Commands.argument("enabled", StringArgumentType.word())
+                                        .suggests(PvPRatingCommands::suggestBoolean)
+                                        .executes(context -> setBooleanConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyDetectionEnabled,
+                                                StringArgumentType.getString(context, "enabled"),
+                                                "label.pvprating.config.anomaly.enabled",
+                                                null
+                                        ))))
+                        .then(Commands.literal("console-alerts")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyConsoleAlertsEnabled,
+                                        "label.pvprating.config.anomaly.console_alerts"
+                                ))
+                                .then(Commands.argument("enabled", StringArgumentType.word())
+                                        .suggests(PvPRatingCommands::suggestBoolean)
+                                        .executes(context -> setBooleanConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyConsoleAlertsEnabled,
+                                                StringArgumentType.getString(context, "enabled"),
+                                                "label.pvprating.config.anomaly.console_alerts",
+                                                null
+                                        ))))
+                        .then(Commands.literal("window")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyWindowSeconds,
+                                        "label.pvprating.config.anomaly.window_seconds"
+                                ))
+                                .then(Commands.argument("seconds", StringArgumentType.word())
+                                        .executes(context -> setIntegerConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyWindowSeconds,
+                                                StringArgumentType.getString(context, "seconds"),
+                                                "label.pvprating.config.anomaly.window_seconds",
+                                                1,
+                                                24 * 60 * 60,
+                                                null
+                                        ))))
+                        .then(Commands.literal("max-gain")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyMaxGainInWindow,
+                                        "label.pvprating.config.anomaly.max_gain"
+                                ))
+                                .then(Commands.argument("value", StringArgumentType.word())
+                                        .executes(context -> setDoubleConfigRange(
+                                                context.getSource(),
+                                                Config.RatingAnomalyMaxGainInWindow,
+                                                StringArgumentType.getString(context, "value"),
+                                                "label.pvprating.config.anomaly.max_gain",
+                                                0.0,
+                                                Double.MAX_VALUE,
+                                                null
+                                        ))))
+                        .then(Commands.literal("max-loss")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyMaxLossInWindow,
+                                        "label.pvprating.config.anomaly.max_loss"
+                                ))
+                                .then(Commands.argument("value", StringArgumentType.word())
+                                        .executes(context -> setDoubleConfigRange(
+                                                context.getSource(),
+                                                Config.RatingAnomalyMaxLossInWindow,
+                                                StringArgumentType.getString(context, "value"),
+                                                "label.pvprating.config.anomaly.max_loss",
+                                                0.0,
+                                                Double.MAX_VALUE,
+                                                null
+                                        ))))
+                        .then(Commands.literal("single-delta")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyMaxSingleDelta,
+                                        "label.pvprating.config.anomaly.single_delta"
+                                ))
+                                .then(Commands.argument("value", StringArgumentType.word())
+                                        .executes(context -> setDoubleConfigRange(
+                                                context.getSource(),
+                                                Config.RatingAnomalyMaxSingleDelta,
+                                                StringArgumentType.getString(context, "value"),
+                                                "label.pvprating.config.anomaly.single_delta",
+                                                0.0,
+                                                Double.MAX_VALUE,
+                                                null
+                                        ))))
+                        .then(Commands.literal("max-changes")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyMaxChangesInWindow,
+                                        "label.pvprating.config.anomaly.max_changes"
+                                ))
+                                .then(Commands.argument("count", StringArgumentType.word())
+                                        .executes(context -> setIntegerConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyMaxChangesInWindow,
+                                                StringArgumentType.getString(context, "count"),
+                                                "label.pvprating.config.anomaly.max_changes",
+                                                0,
+                                                Integer.MAX_VALUE,
+                                                null
+                                        ))))
+                        .then(Commands.literal("max-pair-changes")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyMaxPairChangesInWindow,
+                                        "label.pvprating.config.anomaly.max_pair_changes"
+                                ))
+                                .then(Commands.argument("count", StringArgumentType.word())
+                                        .executes(context -> setIntegerConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyMaxPairChangesInWindow,
+                                                StringArgumentType.getString(context, "count"),
+                                                "label.pvprating.config.anomaly.max_pair_changes",
+                                                0,
+                                                Integer.MAX_VALUE,
+                                                null
+                                        ))))
+                        .then(Commands.literal("alert-cooldown")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyAlertCooldownSeconds,
+                                        "label.pvprating.config.anomaly.alert_cooldown"
+                                ))
+                                .then(Commands.argument("seconds", StringArgumentType.word())
+                                        .executes(context -> setIntegerConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyAlertCooldownSeconds,
+                                                StringArgumentType.getString(context, "seconds"),
+                                                "label.pvprating.config.anomaly.alert_cooldown",
+                                                0,
+                                                24 * 60 * 60,
+                                                null
+                                        ))))
+                        .then(Commands.literal("track-admin")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.RatingAnomalyTrackAdminChanges,
+                                        "label.pvprating.config.anomaly.track_admin"
+                                ))
+                                .then(Commands.argument("enabled", StringArgumentType.word())
+                                        .suggests(PvPRatingCommands::suggestBoolean)
+                                        .executes(context -> setBooleanConfig(
+                                                context.getSource(),
+                                                Config.RatingAnomalyTrackAdminChanges,
+                                                StringArgumentType.getString(context, "enabled"),
+                                                "label.pvprating.config.anomaly.track_admin",
+                                                null
+                                        )))))
                 .then(Commands.literal("towny")
                         .requires(PvPRatingCommands::isAdmin)
                         .executes(context -> sendTownyStatus(context.getSource()))
@@ -877,6 +1038,7 @@ public class PvPRatingCommands {
         }
 
         DisplayEvents.syncAllDisplays(source.getServer());
+        RatingAnomalyDetector.analyzeAdminChange(source, action, target.name(), target.uuid(), previousRating, rating, commandAmount);
         RatingAuditLogger.logManualRatingChange(source, action, target.name(), target.uuid(), previousRating, rating, commandAmount);
         return true;
     }
@@ -999,6 +1161,23 @@ public class PvPRatingCommands {
                 formatConfigValue(Config.PreventNegativeRating.get())
         ), false);
         source.sendSuccess(() -> Component.translatable("message.pvprating.command.formula_description"), false);
+        return 1;
+    }
+
+    private static int sendAnomalyStatus(CommandSourceStack source) {
+        source.sendSuccess(() -> Component.translatable(
+                "message.pvprating.command.anomaly_status",
+                formatConfigValue(Config.RatingAnomalyDetectionEnabled.get()),
+                formatConfigValue(Config.RatingAnomalyConsoleAlertsEnabled.get()),
+                Config.RatingAnomalyWindowSeconds.get(),
+                RatingData.formatRating(Config.RatingAnomalyMaxGainInWindow.get()),
+                RatingData.formatRating(Config.RatingAnomalyMaxLossInWindow.get()),
+                RatingData.formatRating(Config.RatingAnomalyMaxSingleDelta.get()),
+                Config.RatingAnomalyMaxChangesInWindow.get(),
+                Config.RatingAnomalyMaxPairChangesInWindow.get(),
+                Config.RatingAnomalyAlertCooldownSeconds.get(),
+                formatConfigValue(Config.RatingAnomalyTrackAdminChanges.get())
+        ), false);
         return 1;
     }
 

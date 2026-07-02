@@ -54,6 +54,16 @@ public class Config {
     public static ForgeConfigSpec.IntValue AuditMaxFiles;
     public static ForgeConfigSpec.IntValue AuditRateLimitWindowSeconds;
     public static ForgeConfigSpec.DoubleValue AuditSuspiciousDeltaThreshold;
+    public static ForgeConfigSpec.BooleanValue RatingAnomalyDetectionEnabled;
+    public static ForgeConfigSpec.BooleanValue RatingAnomalyConsoleAlertsEnabled;
+    public static ForgeConfigSpec.IntValue RatingAnomalyWindowSeconds;
+    public static ForgeConfigSpec.DoubleValue RatingAnomalyMaxGainInWindow;
+    public static ForgeConfigSpec.DoubleValue RatingAnomalyMaxLossInWindow;
+    public static ForgeConfigSpec.DoubleValue RatingAnomalyMaxSingleDelta;
+    public static ForgeConfigSpec.IntValue RatingAnomalyMaxChangesInWindow;
+    public static ForgeConfigSpec.IntValue RatingAnomalyMaxPairChangesInWindow;
+    public static ForgeConfigSpec.IntValue RatingAnomalyAlertCooldownSeconds;
+    public static ForgeConfigSpec.BooleanValue RatingAnomalyTrackAdminChanges;
 
     public static ForgeConfigSpec.ConfigValue<Double> MinimumValue;
     public static ForgeConfigSpec.ConfigValue<Double> MaximumValue;
@@ -154,6 +164,26 @@ public class Config {
                 .defineInRange("auditRateLimitWindowSeconds", 60, 0, 24 * 60 * 60);
         AuditSuspiciousDeltaThreshold = builder.comment("A single kill rating delta at or above this absolute value is marked suspicious. 0 disables this flag.")
                 .defineInRange("auditSuspiciousDeltaThreshold", 1000.0, 0.0, Double.MAX_VALUE);
+        RatingAnomalyDetectionEnabled = builder.comment("If enabled, PvPRating checks rating changes for suspicious patterns.")
+                .define("ratingAnomalyDetectionEnabled", true);
+        RatingAnomalyConsoleAlertsEnabled = builder.comment("If enabled, detected rating anomalies are written to the server console.")
+                .define("ratingAnomalyConsoleAlertsEnabled", true);
+        RatingAnomalyWindowSeconds = builder.comment("Time window used for rating anomaly aggregation.")
+                .defineInRange("ratingAnomalyWindowSeconds", 300, 1, 24 * 60 * 60);
+        RatingAnomalyMaxGainInWindow = builder.comment("Maximum positive rating gained by one player during the anomaly window before an alert is emitted. 0 disables this check.")
+                .defineInRange("ratingAnomalyMaxGainInWindow", 250.0, 0.0, Double.MAX_VALUE);
+        RatingAnomalyMaxLossInWindow = builder.comment("Maximum rating lost by one player during the anomaly window before an alert is emitted. 0 disables this check.")
+                .defineInRange("ratingAnomalyMaxLossInWindow", 250.0, 0.0, Double.MAX_VALUE);
+        RatingAnomalyMaxSingleDelta = builder.comment("Maximum absolute rating change in one event before an alert is emitted. 0 disables this check.")
+                .defineInRange("ratingAnomalyMaxSingleDelta", 1000.0, 0.0, Double.MAX_VALUE);
+        RatingAnomalyMaxChangesInWindow = builder.comment("Maximum rating-change events for one player during the anomaly window before an alert is emitted. 0 disables this check.")
+                .defineInRange("ratingAnomalyMaxChangesInWindow", 20, 0, Integer.MAX_VALUE);
+        RatingAnomalyMaxPairChangesInWindow = builder.comment("Maximum rating-counted kills for one killer-victim pair during the anomaly window before an alert is emitted. 0 disables this check.")
+                .defineInRange("ratingAnomalyMaxPairChangesInWindow", 5, 0, Integer.MAX_VALUE);
+        RatingAnomalyAlertCooldownSeconds = builder.comment("Minimum seconds between repeated console alerts for the same anomaly key. 0 disables suppression.")
+                .defineInRange("ratingAnomalyAlertCooldownSeconds", 60, 0, 24 * 60 * 60);
+        RatingAnomalyTrackAdminChanges = builder.comment("If enabled, manual operator rating changes are included in anomaly detection.")
+                .define("ratingAnomalyTrackAdminChanges", true);
         MinimumValue = builder.define("Rating Minimum Value", -Double.MAX_VALUE);
         MaximumValue = builder.define("Rating Maximum Value", Double.MAX_VALUE);
 

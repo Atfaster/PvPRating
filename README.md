@@ -270,6 +270,22 @@ Formula settings:
 | `/pvprating formula prevent-negative` | Shows whether rating is clamped at zero. |
 | `/pvprating formula prevent-negative <true\|false>` | Toggles the zero floor for rating changes. |
 
+Rating anomaly detection:
+
+| Command | Description |
+| --- | --- |
+| `/pvprating anomaly` | Shows all rating anomaly detection settings. |
+| `/pvprating anomaly enabled <true\|false>` | Enables or disables rating anomaly detection. |
+| `/pvprating anomaly console-alerts <true\|false>` | Enables or disables server-console anomaly alerts. |
+| `/pvprating anomaly window <seconds>` | Sets the aggregation window used by anomaly checks. |
+| `/pvprating anomaly max-gain <value>` | Sets the maximum rating gained by one player during the window. `0` disables this check. |
+| `/pvprating anomaly max-loss <value>` | Sets the maximum rating lost by one player during the window. `0` disables this check. |
+| `/pvprating anomaly single-delta <value>` | Sets the maximum absolute rating change in one event. `0` disables this check. |
+| `/pvprating anomaly max-changes <count>` | Sets the maximum rating-change events for one player during the window. `0` disables this check. |
+| `/pvprating anomaly max-pair-changes <count>` | Sets the maximum rating-counted kills for one killer-victim pair during the window. `0` disables this check. |
+| `/pvprating anomaly alert-cooldown <seconds>` | Sets the cooldown for repeated console alerts with the same anomaly reason. `0` disables suppression. |
+| `/pvprating anomaly track-admin <true\|false>` | Includes or excludes manual operator rating changes from anomaly detection. |
+
 Towny protection:
 
 | Command | Description |
@@ -362,6 +378,16 @@ Stop the server before editing the file, then restart the server after saving it
 | `auditMaxFiles` | `5` | Maximum audit log files to keep, including the current file. |
 | `auditRateLimitWindowSeconds` | `60` | Suppresses repeated skipped-kill audit entries for the same killer, victim, and reason during this window. `0` disables suppression. |
 | `auditSuspiciousDeltaThreshold` | `1000.0` | Marks a single-kill rating delta as suspicious when its absolute value is at or above this threshold. `0` disables this flag. |
+| `ratingAnomalyDetectionEnabled` | `true` | Enables in-memory anomaly checks for rating changes. |
+| `ratingAnomalyConsoleAlertsEnabled` | `true` | Writes detected rating anomalies to the server console. |
+| `ratingAnomalyWindowSeconds` | `300` | Aggregation window used for gain, loss, frequency, and pair checks. |
+| `ratingAnomalyMaxGainInWindow` | `250.0` | Alerts when one player gains at least this much rating during the window. `0` disables this check. |
+| `ratingAnomalyMaxLossInWindow` | `250.0` | Alerts when one player loses at least this much rating during the window. `0` disables this check. |
+| `ratingAnomalyMaxSingleDelta` | `1000.0` | Alerts when one event changes rating by at least this absolute value. `0` disables this check. |
+| `ratingAnomalyMaxChangesInWindow` | `20` | Alerts when one player has at least this many rating-change events during the window. `0` disables this check. |
+| `ratingAnomalyMaxPairChangesInWindow` | `5` | Alerts when one killer-victim pair has at least this many rating-counted kills during the window. `0` disables this check. |
+| `ratingAnomalyAlertCooldownSeconds` | `60` | Suppresses repeated console alerts for the same player or pair and anomaly reason. `0` disables suppression. |
+| `ratingAnomalyTrackAdminChanges` | `true` | Includes manual operator rating changes in anomaly detection. |
 | `"Rating Minimum Value"` | `-Double.MAX_VALUE` | Legacy minimum value setting. Current default rating logic uses `preventNegativeRating` for the zero floor. |
 | `"Rating Maximum Value"` | `Double.MAX_VALUE` | Legacy maximum value setting. |
 | `"Rating Gain On Killing"` | `1.0` | Base rating gained by the killer. |
@@ -686,6 +712,24 @@ src/main/resources/assets/pvprating/lang/ru_ru.json
 | `/pvprating formula prevent-negative` | Показывает, ограничивается ли рейтинг нулём снизу. |
 | `/pvprating formula prevent-negative <true\|false>` | Включает или отключает нижнюю границу рейтинга `0`. |
 
+Контроль аномалий рейтинга:
+
+Система контроля аномалий не сканирует всех игроков по таймеру. Она анализирует только события, где рейтинг уже изменился: валидные PvP-убийства и, если включено, ручные изменения оператора. Для каждого затронутого игрока и пары убийца-жертва в памяти хранится короткое окно событий. Если за это окно превышен настроенный порог, PvPRating пишет alert в консоль сервера. Повторные одинаковые алерты подавляются cooldown-настройкой, чтобы не спамить лог.
+
+| Команда | Описание |
+| --- | --- |
+| `/pvprating anomaly` | Показывает все настройки контроля аномалий рейтинга. |
+| `/pvprating anomaly enabled <true\|false>` | Включает или отключает контроль аномалий рейтинга. |
+| `/pvprating anomaly console-alerts <true\|false>` | Включает или отключает алерты аномалий в консоль сервера. |
+| `/pvprating anomaly window <seconds>` | Задаёт окно агрегации, по которому считаются аномалии. |
+| `/pvprating anomaly max-gain <value>` | Задаёт максимальный прирост рейтинга одного игрока за окно. `0` отключает эту проверку. |
+| `/pvprating anomaly max-loss <value>` | Задаёт максимальную потерю рейтинга одного игрока за окно. `0` отключает эту проверку. |
+| `/pvprating anomaly single-delta <value>` | Задаёт максимальное абсолютное изменение рейтинга за одно событие. `0` отключает эту проверку. |
+| `/pvprating anomaly max-changes <count>` | Задаёт максимальное число изменений рейтинга одного игрока за окно. `0` отключает эту проверку. |
+| `/pvprating anomaly max-pair-changes <count>` | Задаёт максимальное число засчитанных убийств с изменением рейтинга для одной пары убийца-жертва за окно. `0` отключает эту проверку. |
+| `/pvprating anomaly alert-cooldown <seconds>` | Задаёт кулдаун повторных консольных алертов с той же причиной. `0` отключает подавление. |
+| `/pvprating anomaly track-admin <true\|false>` | Включает или исключает ручные изменения рейтинга оператором из анализа аномалий. |
+
 Защита Towny:
 
 | Команда | Описание |
@@ -767,6 +811,16 @@ run/server/world/serverconfig/pvprating-server.toml
 | `auditMaxFiles` | `5` | Максимальное число audit-файлов, включая текущий файл. |
 | `auditRateLimitWindowSeconds` | `60` | Подавляет повторяющиеся audit-записи о пропущенных убийствах для той же пары убийца-жертва и той же причины в течение этого окна. `0` отключает подавление. |
 | `auditSuspiciousDeltaThreshold` | `1000.0` | Помечает изменение рейтинга за одно убийство как suspicious, если абсолютное значение delta не меньше этого порога. `0` отключает этот флаг. |
+| `ratingAnomalyDetectionEnabled` | `true` | Включает in-memory проверки аномалий для изменений рейтинга. |
+| `ratingAnomalyConsoleAlertsEnabled` | `true` | Пишет обнаруженные аномалии рейтинга в консоль сервера. |
+| `ratingAnomalyWindowSeconds` | `300` | Окно агрегации для проверок прироста, потери, частоты изменений и повторов пары. |
+| `ratingAnomalyMaxGainInWindow` | `250.0` | Вызывает alert, когда один игрок получает не меньше этого количества рейтинга за окно. `0` отключает эту проверку. |
+| `ratingAnomalyMaxLossInWindow` | `250.0` | Вызывает alert, когда один игрок теряет не меньше этого количества рейтинга за окно. `0` отключает эту проверку. |
+| `ratingAnomalyMaxSingleDelta` | `1000.0` | Вызывает alert, когда одно событие меняет рейтинг минимум на это абсолютное значение. `0` отключает эту проверку. |
+| `ratingAnomalyMaxChangesInWindow` | `20` | Вызывает alert, когда у одного игрока за окно накопилось не меньше этого числа изменений рейтинга. `0` отключает эту проверку. |
+| `ratingAnomalyMaxPairChangesInWindow` | `5` | Вызывает alert, когда одна пара убийца-жертва имеет не меньше этого числа засчитанных убийств за окно. `0` отключает эту проверку. |
+| `ratingAnomalyAlertCooldownSeconds` | `60` | Подавляет повторные консольные алерты для того же игрока или пары и той же причины. `0` отключает подавление. |
+| `ratingAnomalyTrackAdminChanges` | `true` | Включает ручные изменения рейтинга оператором в анализ аномалий. |
 | `"Rating Minimum Value"` | `-Double.MAX_VALUE` | Legacy-настройка минимального значения. В текущей стандартной логике нижнюю границу `0` задаёт `preventNegativeRating`. |
 | `"Rating Maximum Value"` | `Double.MAX_VALUE` | Legacy-настройка максимального значения. |
 | `"Rating Gain On Killing"` | `1.0` | Базовый рейтинг, который получает убийца. |
