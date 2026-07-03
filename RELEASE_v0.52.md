@@ -8,6 +8,7 @@
 - Ранги и иконки мечей теперь можно считать по ручным порогам `rankThresholds`; старое масштабирование от максимального известного рейтинга доступно через `rankAbsoluteSystem`.
 - Добавлена система combat power: рейтинг за убийство и потеря жертвы масштабируются по разнице экипировки, брони, твёрдости брони и урона атаки.
 - Spawn-kill защита теперь может эскалировать время кулдауна для повторных убийств одной пары и учитывать боеготовность жертвы.
+- Добавлена система отслеживания аномального изменения рейтинга: сервер может выявлять слишком большой прирост/потерю рейтинга, слишком частые изменения за окно времени и подозрительные повторные убийства одной пары.
 - Админские команды `/pvprating` расширены командами для рангов, combat power, spawn-kill защиты, формулы рейтинга, отображения и Towny-защит.
 - Ручные изменения рейтинга теперь работают с известными оффлайн-игроками, если в мире есть их `playerdata`.
 - Локальные dev/prod-like скрипты обновлены для тестирования на Arclight и PortableMC клиентах.
@@ -26,6 +27,15 @@
 - `combatPowerAttackDamageWeight`
 - `combatPowerMinGainCoefficient`
 - `combatPowerReverseAttemptPenaltyEnabled`
+- `ratingAnomalyDetectionEnabled`
+- `ratingAnomalyConsoleAlertsEnabled`
+- `ratingAnomalyWindowSeconds`
+- `ratingAnomalyMaxGainInWindow`
+- `ratingAnomalyMaxLossInWindow`
+- `ratingAnomalyMaxChangesInWindow`
+- `ratingAnomalyMaxPairChangesInWindow`
+- `ratingAnomalyAlertCooldownSeconds`
+- `ratingAnomalyTrackAdminChanges`
 
 ## Команды
 
@@ -37,6 +47,7 @@
 - `/pvprating formula ...`
 - `/pvprating display ...`
 - `/pvprating towny ...`
+- `/pvprating anomaly ...`
 
 Также улучшены сообщения ошибок и подсказки команд. Дробные числа в командах можно вводить как через точку, так и через запятую.
 
