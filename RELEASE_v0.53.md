@@ -62,5 +62,5 @@
 Загрузите jar из `build/libs` после сборки:
 
 ```text
-pvprating-0.53-&-1.20.1.jar
+pvprating-0.53-1.20.1.jar
 ```
