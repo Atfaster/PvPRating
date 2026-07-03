@@ -20,7 +20,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.UUID;
 
 public class RatingAuditLogger {
     private static final String AUDIT_FILE_NAME = "pvprating-audit.log";

@@ -26,7 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
 
-@SuppressWarnings({"removal", "unused"})
+@SuppressWarnings("removal")
 @Mod("pvprating")
 @Mod.EventBusSubscriber
 public class PvPRatingMod {
