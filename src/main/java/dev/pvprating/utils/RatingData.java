@@ -1,5 +1,7 @@
 package dev.pvprating.utils;
 
+import dev.pvprating.PvPRatingMod;
+import dev.pvprating.configs.Config;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -15,8 +17,15 @@ public class RatingData {
     }
 
     public static boolean setRating(Player player, double rating) {
-        player.getPersistentData().putDouble(RATING_KEY, rating);
-        GetValues.playerRating.put(player.getUUID(), rating);
+        Double sanitizedRating = sanitizeRating(rating);
+        if (sanitizedRating == null) {
+            PvPRatingMod.LOGGER.warn("Refused to store non-finite PvPRating value for {}({}): {}",
+                    player.getGameProfile().getName(), player.getUUID(), rating);
+            return false;
+        }
+
+        player.getPersistentData().putDouble(RATING_KEY, sanitizedRating);
+        GetValues.playerRating.put(player.getUUID(), sanitizedRating);
 
         if (player instanceof ServerPlayer serverPlayer) {
             return RatingLeaderboardData.updatePlayer(serverPlayer);
@@ -31,6 +40,15 @@ public class RatingData {
 
     public static void setRatingFrozen(Player player, boolean frozen) {
         player.getPersistentData().putBoolean(RATING_FROZEN_KEY, frozen);
+    }
+
+    public static Double sanitizeRating(double rating) {
+        return RatingSanitizer.sanitize(rating, Config.MinimumValue.get(), Config.MaximumValue.get());
+    }
+
+    public static double sanitizeRatingOrDefault(double rating, double fallback) {
+        Double sanitizedRating = sanitizeRating(rating);
+        return sanitizedRating == null ? fallback : sanitizedRating;
     }
 
     public static String formatSignedRating(double value) {

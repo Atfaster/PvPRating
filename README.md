@@ -23,6 +23,7 @@ Default rating math:
 
 - Killer: `current rating + gain + current rating * killer multiplier + victim rating * claim multiplier`
 - Victim: `current rating - loss - current rating * target multiplier`
+- By default, `loss` is `0.0`, so victim loss comes only from `target multiplier`.
 - If complete loss is enabled: `victim rating = -loss - current rating * target multiplier`.
 - If `preventNegativeRating` is enabled, the victim rating is clamped to `0` after the loss calculation.
 
@@ -199,6 +200,8 @@ Rating system and rank display:
 | --- | --- |
 | `/pvprating system` | Shows whether the default PvP rating math is enabled. |
 | `/pvprating system <true\|false>` | Enables or disables the default PvP rating math. |
+| `/pvprating system command-blocks` | Shows whether command blocks can run PvPRating admin commands. Disabled by default. |
+| `/pvprating system command-blocks <true\|false>` | Allows or blocks command blocks and other non-player command sources with operator-level permission from running PvPRating admin commands. |
 | `/pvprating rank` | Shows rank scaling mode and configured manual thresholds. |
 | `/pvprating rank absolute` | Shows whether absolute rank scaling is enabled. |
 | `/pvprating rank absolute <true\|false>` | Enables absolute rank/icon scaling from the highest known rating, or disables it to use manual thresholds. |
@@ -350,6 +353,7 @@ Stop the server before editing the file, then restart the server after saving it
 | `"Strikethrough the color"` | `false` | Strikes through the displayed value. |
 | `"Text before the value"` | `" ["` | Text placed before the icon and displayed rating value. Existing generated values ending in `$` are supported and have the trailing `$` removed before the icon is inserted. |
 | `"Text after the value"` | `"]"` | Text placed after the displayed rating value. |
+| `allowCommandBlockAdminCommands` | `false` | Allows command blocks and other non-player command sources with operator-level permission to run PvPRating admin commands. Disabled by default. |
 | `rankAbsoluteSystem` | `false` | If enabled, rank words and sword icons scale from the highest known rating. If disabled, `rankThresholds` are used. |
 | `rankThresholds` | `[0.0, 22.22..., ..., 200.0]` | Rating thresholds for rank levels 1 through 10. The default list is evenly distributed from `0` to `200`. |
 | `"Loss the equivalent of your entire rating on death"` | `false` | Uses the complete-loss victim formula instead of subtracting from the current rating. |
@@ -391,7 +395,7 @@ Stop the server before editing the file, then restart the server after saving it
 | `"Rating Minimum Value"` | `-Double.MAX_VALUE` | Legacy minimum value setting. Current default rating logic uses `preventNegativeRating` for the zero floor. |
 | `"Rating Maximum Value"` | `Double.MAX_VALUE` | Legacy maximum value setting. |
 | `"Rating Gain On Killing"` | `1.0` | Base rating gained by the killer. |
-| `"Rating Loss On Death"` | `1.0` | Base rating lost by the victim. |
+| `"Rating Loss On Death"` | `0.0` | Base rating lost by the victim. By default, death loss comes only from `targetMultiplier`. |
 | `"Killer-Multiplier multiply from your own rating every time you kill someone 1 = 100%"` | `0.0` | Multiplies the killer's current rating and adds it to the killer rating gain. |
 | `"Claim-Multiplier, how much rating you take from your victim 1 = 100%"` | `0.09` | Adds a percentage of the victim's rating to the killer rating gain. |
 | `"Target-Multiplier, how much rating is subtracted when you get killed 1 = 100%"` | `0.1` | Applies an additional victim-side rating loss based on the victim's current rating. |
@@ -421,6 +425,7 @@ Random rating options from older generated configs are ignored by current PvPRat
 
 - Убийца: `текущий рейтинг + gain + текущий рейтинг * killer multiplier + рейтинг жертвы * claim multiplier`
 - Жертва: `текущий рейтинг - loss - текущий рейтинг * target multiplier`
+- По умолчанию `loss` равен `0.0`, поэтому потеря жертвы идёт только от `target multiplier`.
 - Если включена полная потеря: `рейтинг жертвы = -loss - текущий рейтинг * target multiplier`.
 - Если включён `preventNegativeRating`, рейтинг жертвы после расчёта обрезается до `0`.
 
@@ -641,6 +646,8 @@ src/main/resources/assets/pvprating/lang/ru_ru.json
 | --- | --- |
 | `/pvprating system` | Показывает, включена ли стандартная математика PvP-рейтинга. |
 | `/pvprating system <true\|false>` | Включает или отключает стандартную математику PvP-рейтинга. |
+| `/pvprating system command-blocks` | Показывает, могут ли командные блоки выполнять admin-команды PvPRating. По умолчанию выключено. |
+| `/pvprating system command-blocks <true\|false>` | Разрешает или блокирует командные блоки и другие non-player источники с op-level permission для admin-команд PvPRating. |
 | `/pvprating rank` | Показывает режим расчёта рангов и ручные пороги. |
 | `/pvprating rank absolute` | Показывает, включено ли абсолютное масштабирование рангов. |
 | `/pvprating rank absolute <true\|false>` | Включает масштабирование рангов/иконок от максимального известного рейтинга или отключает его для ручных порогов. |
@@ -783,6 +790,7 @@ run/server/world/serverconfig/pvprating-server.toml
 | `"Strikethrough the color"` | `false` | Зачёркивает отображаемое значение. |
 | `"Text before the value"` | `" ["` | Текст перед иконкой и значением рейтинга. Уже сгенерированные значения, заканчивающиеся на `$`, поддерживаются: завершающий `$` удаляется перед вставкой иконки. |
 | `"Text after the value"` | `"]"` | Текст после значения рейтинга. |
+| `allowCommandBlockAdminCommands` | `false` | Разрешает командным блокам и другим non-player источникам с op-level permission выполнять admin-команды PvPRating. По умолчанию выключено. |
 | `rankAbsoluteSystem` | `false` | Если включено, слова рангов и иконки мечей масштабируются от максимального известного рейтинга. Если отключено, используются `rankThresholds`. |
 | `rankThresholds` | `[0.0, 22.22..., ..., 200.0]` | Пороги рейтинга для уровней ранга 1-10. Стандартный список равномерно распределён от `0` до `200`. |
 | `"Loss the equivalent of your entire rating on death"` | `false` | Использует формулу полной потери жертвы вместо обычного вычитания из текущего рейтинга. |
@@ -824,7 +832,7 @@ run/server/world/serverconfig/pvprating-server.toml
 | `"Rating Minimum Value"` | `-Double.MAX_VALUE` | Legacy-настройка минимального значения. В текущей стандартной логике нижнюю границу `0` задаёт `preventNegativeRating`. |
 | `"Rating Maximum Value"` | `Double.MAX_VALUE` | Legacy-настройка максимального значения. |
 | `"Rating Gain On Killing"` | `1.0` | Базовый рейтинг, который получает убийца. |
-| `"Rating Loss On Death"` | `1.0` | Базовый рейтинг, который теряет жертва. |
+| `"Rating Loss On Death"` | `0.0` | Базовый рейтинг, который теряет жертва. По умолчанию потеря при смерти идёт только от `targetMultiplier`. |
 | `"Killer-Multiplier multiply from your own rating every time you kill someone 1 = 100%"` | `0.0` | Умножает текущий рейтинг убийцы и добавляет результат к приросту рейтинга убийцы. |
 | `"Claim-Multiplier, how much rating you take from your victim 1 = 100%"` | `0.09` | Добавляет к приросту рейтинга убийцы процент от рейтинга жертвы. |
 | `"Target-Multiplier, how much rating is subtracted when you get killed 1 = 100%"` | `0.1` | Добавляет жертве дополнительную потерю на основе её текущего рейтинга. |

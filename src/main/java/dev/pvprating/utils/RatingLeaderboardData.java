@@ -23,6 +23,8 @@ public class RatingLeaderboardData extends SavedData {
     private static final String RATING_KEY = "rating";
 
     private final Map<UUID, RatingEntry> entries = new HashMap<>();
+    private List<RatingEntry> cachedPositiveEntries;
+    private double cachedMaxRating;
 
     public static RatingLeaderboardData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
@@ -70,7 +72,7 @@ public class RatingLeaderboardData extends SavedData {
         return data.findByName(name);
     }
 
-    public static List<String> knownPlayerNames(MinecraftServer server) {
+    public static List<String> knownPlayerNames(MinecraftServer server, String prefix, int limit) {
         RatingLeaderboardData data = get(server);
         data.updateOnlinePlayers(server);
 
@@ -78,8 +80,7 @@ public class RatingLeaderboardData extends SavedData {
         for (RatingEntry entry : data.entries.values()) {
             names.add(entry.name());
         }
-        names.sort(String.CASE_INSENSITIVE_ORDER);
-        return names;
+        return PlayerNameSuggestions.filter(names, prefix, limit);
     }
 
     public static void putKnown(MinecraftServer server, UUID uuid, String name, double rating) {
@@ -154,28 +155,41 @@ public class RatingLeaderboardData extends SavedData {
         }
 
         entries.put(uuid, nextEntry);
+        invalidateCache();
         setDirty();
         return Double.compare(previousMaxRating, maxRating()) != 0;
     }
 
     private double maxRating() {
-        double maxRating = 0.0;
-
-        for (RatingEntry entry : entries.values()) {
-            if (isPositiveFinite(entry.rating())) maxRating = Math.max(maxRating, entry.rating());
-        }
-
-        return maxRating;
+        ensurePositiveEntriesCache();
+        return cachedMaxRating;
     }
 
     private List<RatingEntry> positiveEntries() {
+        ensurePositiveEntriesCache();
+        return new ArrayList<>(cachedPositiveEntries);
+    }
+
+    private void ensurePositiveEntriesCache() {
+        if (cachedPositiveEntries != null) return;
+
         List<RatingEntry> positiveEntries = new ArrayList<>();
+        double maxRating = 0.0;
 
         for (RatingEntry entry : entries.values()) {
-            if (isPositiveFinite(entry.rating())) positiveEntries.add(entry);
+            if (isPositiveFinite(entry.rating())) {
+                positiveEntries.add(entry);
+                maxRating = Math.max(maxRating, entry.rating());
+            }
         }
 
-        return sorted(positiveEntries);
+        cachedPositiveEntries = List.copyOf(sorted(positiveEntries));
+        cachedMaxRating = maxRating;
+    }
+
+    private void invalidateCache() {
+        cachedPositiveEntries = null;
+        cachedMaxRating = 0.0;
     }
 
     private static List<RatingEntry> sorted(List<RatingEntry> entries) {

@@ -6,6 +6,7 @@ import dev.pvprating.compats.TownyCompat;
 import dev.pvprating.utils.RatingAnomalyDetector;
 import dev.pvprating.utils.RatingAuditLogger;
 import dev.pvprating.utils.RatingData;
+import dev.pvprating.utils.SpawnKillProtectionTracker;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
@@ -19,11 +20,10 @@ import net.minecraftforge.api.distmarker.Dist;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @EventBusSubscriber(Dist.DEDICATED_SERVER)
 public class PlayerDeathEvent {
-    private static final Map<UUID, Map<UUID, PairKillState>> pairKillStates = new HashMap<>();
+    private static final SpawnKillProtectionTracker spawnKillTracker = new SpawnKillProtectionTracker();
 
     @SubscribeEvent
     public static void onPlayerDeath(LivingDeathEvent event) {
@@ -103,46 +103,36 @@ public class PlayerDeathEvent {
 
         int protectionSeconds = SpawnKillProtectionSeconds.get();
         if (protectionSeconds <= 0) {
-            clearReverseAttemptPenalty(killer, target);
+            spawnKillTracker.clearReverseAttemptPenalty(killer.getUUID(), target.getUUID());
             return RatingDecision.apply(gainCoefficient);
         }
 
         long now = java.lang.System.currentTimeMillis();
-        Map<UUID, PairKillState> victimKillStates = pairKillStates.computeIfAbsent(killer.getUUID(), uuid -> new HashMap<>());
-        PairKillState state = victimKillStates.get(target.getUUID());
+        SpawnKillProtectionTracker.KillDecision killDecision = spawnKillTracker.recordKill(
+                killer.getUUID(),
+                target.getUUID(),
+                now,
+                protectionSeconds,
+                SpawnKillProtectionMaxSeconds.get(),
+                SpawnKillProtectionMultiplier.get(),
+                targetPower.ready()
+        );
 
-        if (state == null) {
-            victimKillStates.put(target.getUUID(), PairKillState.initial(now, protectionSeconds));
-            clearReverseAttemptPenalty(killer, target);
+        if (killDecision.ratingAllowed()) {
+            spawnKillTracker.clearReverseAttemptPenalty(killer.getUUID(), target.getUUID());
             return RatingDecision.apply(gainCoefficient);
         }
-
-        long elapsedMillis = now - state.lastKillTimeMillis();
-        if (elapsedMillis >= state.currentCooldownSeconds() * 1000L) {
-            victimKillStates.put(target.getUUID(), PairKillState.initial(now, protectionSeconds));
-            clearReverseAttemptPenalty(killer, target);
-            return RatingDecision.apply(gainCoefficient);
-        }
-
-        if (targetPower.ready()) {
-            victimKillStates.put(target.getUUID(), PairKillState.initial(now, protectionSeconds));
-            clearReverseAttemptPenalty(killer, target);
-            return RatingDecision.apply(gainCoefficient);
-        }
-
-        PairKillState escalatedState = state.escalate(now, protectionSeconds);
-        victimKillStates.put(target.getUUID(), escalatedState);
 
         Map<String, Object> details = new HashMap<>();
-        details.put("elapsedSeconds", elapsedMillis / 1000L);
-        details.put("requiredSeconds", state.currentCooldownSeconds());
-        details.put("nextRequiredSeconds", escalatedState.currentCooldownSeconds());
-        details.put("violations", escalatedState.violations());
+        details.put("elapsedSeconds", killDecision.elapsedMillis() / 1000L);
+        details.put("requiredSeconds", killDecision.requiredSeconds());
+        details.put("nextRequiredSeconds", killDecision.nextRequiredSeconds());
+        details.put("violations", killDecision.violations());
         details.put("killerCombatPower", killerPower.power());
         details.put("victimCombatPower", targetPower.power());
         details.put("victimReady", targetPower.ready());
         RatingAuditLogger.logSkippedKill(killer, target, "spawn_kill_protection", details);
-        sendSpawnKillSkipMessages(killer, target, elapsedMillis / 1000L, state.currentCooldownSeconds(), escalatedState.currentCooldownSeconds());
+        sendSpawnKillSkipMessages(killer, target, killDecision.elapsedMillis() / 1000L, killDecision.requiredSeconds(), killDecision.nextRequiredSeconds());
         return RatingDecision.skip();
     }
 
@@ -184,6 +174,7 @@ public class PlayerDeathEvent {
         double ratingGain = Gain.get() + (killerRating * KillerMultiplier.get()
                 + (RatingData.getRating(target) * ClaimMultiplier.get()));
         killerRating += ratingGain * sanitizeRatingCoefficient(gainCoefficient);
+        killerRating = RatingData.sanitizeRatingOrDefault(killerRating, previousRating);
 
         RatingData.setRating(killer, killerRating);
         sendRatingChangeMessage(killer, previousRating, killerRating);
@@ -209,6 +200,7 @@ public class PlayerDeathEvent {
         if (PreventNegativeRating.get()) {
             targetRating = Math.max(0, targetRating);
         }
+        targetRating = RatingData.sanitizeRatingOrDefault(targetRating, previousRating);
 
         RatingData.setRating(target, targetRating);
         sendRatingChangeMessage(target, previousRating, targetRating);
@@ -237,21 +229,10 @@ public class PlayerDeathEvent {
     private static double reverseAttemptPenaltyCoefficient(ServerPlayer killer, ServerPlayer target) {
         if (!CombatPowerEnabled.get() || !CombatPowerReverseAttemptPenaltyEnabled.get()) return 1.0;
 
-        Map<UUID, PairKillState> reverseStates = pairKillStates.get(target.getUUID());
-        if (reverseStates == null) return 1.0;
+        int reverseViolations = spawnKillTracker.reverseViolations(killer.getUUID(), target.getUUID());
+        if (reverseViolations <= 0) return 1.0;
 
-        PairKillState reverseState = reverseStates.get(killer.getUUID());
-        if (reverseState == null || reverseState.violations() <= 0) return 1.0;
-
-        return Math.max(CombatPowerMinGainCoefficient.get(), 1.0 / (reverseState.violations() + 1.0));
-    }
-
-    private static void clearReverseAttemptPenalty(ServerPlayer killer, ServerPlayer target) {
-        Map<UUID, PairKillState> reverseStates = pairKillStates.get(target.getUUID());
-        if (reverseStates == null) return;
-
-        reverseStates.remove(killer.getUUID());
-        if (reverseStates.isEmpty()) pairKillStates.remove(target.getUUID());
+        return Math.max(CombatPowerMinGainCoefficient.get(), 1.0 / (reverseViolations + 1.0));
     }
 
     private static double sanitizeRatingCoefficient(double ratingCoefficient) {
@@ -286,18 +267,4 @@ public class PlayerDeathEvent {
         }
     }
 
-    private record PairKillState(long lastKillTimeMillis, int currentCooldownSeconds, int violations) {
-        private static PairKillState initial(long now, int protectionSeconds) {
-            return new PairKillState(now, protectionSeconds, 0);
-        }
-
-        private PairKillState escalate(long now, int baseProtectionSeconds) {
-            int maxSeconds = SpawnKillProtectionMaxSeconds.get();
-            if (maxSeconds <= 0) maxSeconds = Integer.MAX_VALUE;
-
-            double multipliedCooldown = currentCooldownSeconds * SpawnKillProtectionMultiplier.get();
-            int nextCooldownSeconds = (int) Math.min(maxSeconds, Math.max(baseProtectionSeconds, Math.ceil(multipliedCooldown)));
-            return new PairKillState(now, nextCooldownSeconds, violations + 1);
-        }
-    }
 }

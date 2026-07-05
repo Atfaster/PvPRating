@@ -12,6 +12,7 @@ public class Config {
     public static ForgeConfigSpec.BooleanValue StartupWarning;
 
     public static ForgeConfigSpec.BooleanValue System;
+    public static ForgeConfigSpec.BooleanValue AllowCommandBlockAdminCommands;
 
     public static ForgeConfigSpec.BooleanValue EnableDisplay;
     public static ForgeConfigSpec.ConfigValue<Integer> DisplayCooldown;
@@ -96,6 +97,8 @@ public class Config {
         StartupWarning = builder.define("Enable the warning in the server start", true);
 
         System = builder.define("Enable the default maths, disable the display to prevent the name change", true);
+        AllowCommandBlockAdminCommands = builder.comment("If enabled, command blocks and other non-player command sources with operator-level permission can run PvPRating admin commands.")
+                .define("allowCommandBlockAdminCommands", false);
 
         EnableDisplay = builder.define("Enable the display", true);
         DisplayCooldown = builder.define("How much ticks before displays get updated", 100);
@@ -184,15 +187,15 @@ public class Config {
                 .defineInRange("ratingAnomalyAlertCooldownSeconds", 60, 0, 24 * 60 * 60);
         RatingAnomalyTrackAdminChanges = builder.comment("If enabled, manual operator rating changes are included in anomaly detection.")
                 .define("ratingAnomalyTrackAdminChanges", true);
-        MinimumValue = builder.define("Rating Minimum Value", -Double.MAX_VALUE);
-        MaximumValue = builder.define("Rating Maximum Value", Double.MAX_VALUE);
+        MinimumValue = builder.defineInRange("Rating Minimum Value", -Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE);
+        MaximumValue = builder.defineInRange("Rating Maximum Value", Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE);
 
-        Gain = builder.define("Rating Gain On Killing", 1.0);
-        Loss = builder.define("Rating Loss On Death", 1.0);
+        Gain = builder.defineInRange("Rating Gain On Killing", 1.0, -Double.MAX_VALUE, Double.MAX_VALUE);
+        Loss = builder.defineInRange("Rating Loss On Death", 0.0, -Double.MAX_VALUE, Double.MAX_VALUE);
 
-        KillerMultiplier = builder.define("Killer-Multiplier multiply from your own rating every time you kill someone 1 = 100%", 0.0);
-        ClaimMultiplier = builder.define("Claim-Multiplier, how much rating you take from your victim 1 = 100%", 0.09);
-        TargetMultiplier = builder.define("Target-Multiplier, how much rating is subtracted when you get killed 1 = 100%", 0.1);
+        KillerMultiplier = builder.defineInRange("Killer-Multiplier multiply from your own rating every time you kill someone 1 = 100%", 0.0, -Double.MAX_VALUE, Double.MAX_VALUE);
+        ClaimMultiplier = builder.defineInRange("Claim-Multiplier, how much rating you take from your victim 1 = 100%", 0.09, -Double.MAX_VALUE, Double.MAX_VALUE);
+        TargetMultiplier = builder.defineInRange("Target-Multiplier, how much rating is subtracted when you get killed 1 = 100%", 0.1, -Double.MAX_VALUE, Double.MAX_VALUE);
 
         SPEC = builder.build();
     }

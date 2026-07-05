@@ -7,6 +7,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.pvprating.PvPRatingMod;
 import dev.pvprating.configs.Config;
 import dev.pvprating.events.DisplayEvents;
+import dev.pvprating.utils.AdminCommandAccess;
 import dev.pvprating.utils.OfflineRatingData;
 import dev.pvprating.utils.RatingAnomalyDetector;
 import dev.pvprating.utils.RatingAuditLogger;
@@ -35,6 +36,7 @@ import static dev.pvprating.utils.mods.PvPRatingUtils.MAX_RATING_LEVELS;
 public class PvPRatingCommands {
     private static final int ADMIN_PERMISSION_LEVEL = 4;
     private static final int TOP_PAGE_SIZE = 10;
+    private static final int MAX_PLAYER_SUGGESTIONS = 50;
     private static final int MIN_DISPLAY_COOLDOWN_TICKS = 1;
     private static final int MIN_RGB_DECIMAL = 0;
     private static final int MAX_RGB_DECIMAL = 0xFFFFFF;
@@ -338,7 +340,22 @@ public class PvPRatingCommands {
                                         StringArgumentType.getString(context, "enabled"),
                                         "label.pvprating.config.system",
                                         null
-                                ))))
+                                )))
+                        .then(Commands.literal("command-blocks")
+                                .executes(context -> sendConfigCurrent(
+                                        context.getSource(),
+                                        Config.AllowCommandBlockAdminCommands,
+                                        "label.pvprating.config.admin.command_blocks"
+                                ))
+                                .then(Commands.argument("enabled", StringArgumentType.word())
+                                        .suggests(PvPRatingCommands::suggestBoolean)
+                                        .executes(context -> setBooleanConfig(
+                                                context.getSource(),
+                                                Config.AllowCommandBlockAdminCommands,
+                                                StringArgumentType.getString(context, "enabled"),
+                                                "label.pvprating.config.admin.command_blocks",
+                                                null
+                                        )))))
                 .then(Commands.literal("rank")
                         .requires(PvPRatingCommands::isAdmin)
                         .executes(context -> sendRankStatus(context.getSource()))
@@ -793,7 +810,17 @@ public class PvPRatingCommands {
     }
 
     private static boolean isAdmin(CommandSourceStack source) {
-        return source.hasPermission(ADMIN_PERMISSION_LEVEL);
+        boolean playerSource = source.getEntity() instanceof ServerPlayer;
+        String sourceName = source.getTextName();
+        boolean serverSource = source.getEntity() == null
+                && ("Server".equals(sourceName) || "Rcon".equalsIgnoreCase(sourceName));
+
+        return AdminCommandAccess.canRunAdminCommand(
+                source.hasPermission(ADMIN_PERMISSION_LEVEL),
+                playerSource,
+                serverSource,
+                Config.AllowCommandBlockAdminCommands.get()
+        );
     }
 
     private static CompletableFuture<Suggestions> suggestBoolean(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
@@ -801,7 +828,14 @@ public class PvPRatingCommands {
     }
 
     private static CompletableFuture<Suggestions> suggestKnownPlayers(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
-        return SharedSuggestionProvider.suggest(RatingLeaderboardData.knownPlayerNames(context.getSource().getServer()), builder);
+        return SharedSuggestionProvider.suggest(
+                RatingLeaderboardData.knownPlayerNames(
+                        context.getSource().getServer(),
+                        builder.getRemaining(),
+                        MAX_PLAYER_SUGGESTIONS
+                ),
+                builder
+        );
     }
 
     private static int sendModDescription(CommandSourceStack source) {
@@ -1015,17 +1049,22 @@ public class PvPRatingCommands {
 
     private static boolean changeRating(CommandSourceStack source, RatingTarget target, double rating, String action, Double commandAmount) {
         double previousRating = target.rating();
+        Double sanitizedRating = RatingData.sanitizeRating(rating);
+        if (sanitizedRating == null) {
+            source.sendFailure(Component.translatable("message.pvprating.command.invalid_rating"));
+            return false;
+        }
 
         if (target.onlinePlayer() != null) {
-            RatingData.setRating(target.onlinePlayer(), rating);
+            RatingData.setRating(target.onlinePlayer(), sanitizedRating);
             target.onlinePlayer().displayClientMessage(Component.translatable(
                     "message.pvprating.rating_changed_manual",
                     RatingData.formatRating(previousRating),
-                    RatingData.formatRating(rating)
+                    RatingData.formatRating(sanitizedRating)
             ), false);
         } else {
             try {
-                OfflineRatingData.setRating(source.getServer(), target.uuid(), rating);
+                OfflineRatingData.setRating(source.getServer(), target.uuid(), sanitizedRating);
             } catch (IOException exception) {
                 PvPRatingMod.LOGGER.error("Failed to write offline PvPRating data for {}", target.uuid(), exception);
                 source.sendFailure(Component.translatable(
@@ -1034,12 +1073,12 @@ public class PvPRatingCommands {
                 ));
                 return false;
             }
-            RatingLeaderboardData.putKnown(source.getServer(), target.uuid(), target.name(), rating);
+            RatingLeaderboardData.putKnown(source.getServer(), target.uuid(), target.name(), sanitizedRating);
         }
 
         DisplayEvents.syncAllDisplays(source.getServer());
-        RatingAnomalyDetector.analyzeAdminChange(source, action, target.name(), target.uuid(), previousRating, rating, commandAmount);
-        RatingAuditLogger.logManualRatingChange(source, action, target.name(), target.uuid(), previousRating, rating, commandAmount);
+        RatingAnomalyDetector.analyzeAdminChange(source, action, target.name(), target.uuid(), previousRating, sanitizedRating, commandAmount);
+        RatingAuditLogger.logManualRatingChange(source, action, target.name(), target.uuid(), previousRating, sanitizedRating, commandAmount);
         return true;
     }
 

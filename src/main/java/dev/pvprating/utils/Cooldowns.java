@@ -1,5 +1,6 @@
 package dev.pvprating.utils;
 
+import dev.pvprating.PvPRatingMod;
 import dev.pvprating.configs.Config;
 
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
@@ -45,7 +46,7 @@ public class Cooldowns {
                 try {
                     task.methods.run();
                 } catch (Exception exception) {
-                    throw new RuntimeException("Somehow the display cooldown for PvPRating crashed. Make sure you are using the latest version, otherwise please report the issue there: https://discord.gg/NfEvdR8m4D");
+                    PvPRatingMod.LOGGER.error("PvPRating delayed task failed.", exception);
                 }
 
                 it.remove();
