@@ -27,5 +27,5 @@ Existing generated `pvprating-server.toml` files keep their current values. To u
 Upload the jar from `build/libs` after building:
 
 ```text
-pvprating-1.0-&-1.20.1.jar
+pvprating-1.0-1.20.1.jar
 ```
